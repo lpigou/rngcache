@@ -150,6 +150,4 @@ if __name__ == '__main__':
             #         continue
             #     l.release()
             # print count, "locked"
-
-    cache.job.join()
     cache.terminate()
