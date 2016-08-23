@@ -11,7 +11,7 @@ The cache is continuously refreshing the files with random ones.
 from rngcache import RandomFileCache
 
 # 200MB cache
-cache = RandomFileCache("path/to/files/", cache_size=200) 
+cache = RandomFileCache("path/to/dir/", cache_size=200) 
 cache.start()
 # ...
 with cache.get_random_file() as file_path:
