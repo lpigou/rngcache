@@ -41,7 +41,7 @@ class RandomFileCache(object):
         manager = mp.Manager()
         self.cache = manager.list()
 
-        self.cache_dir += ""+str(time())+"/"
+        self.cache_dir += "rngcache"+str(time())+"/"
         os.mkdir(self.cache_dir)
 
         # locks can't be made on the fly (not pickable), so allocate a bunch of them
@@ -60,6 +60,9 @@ class RandomFileCache(object):
     def get_random_file(self):
         self.cache_ready.wait()
         while True:
+            if len(self.cache) == 0:
+                sleep(0.1)
+                continue
             entry = random.choice(self.cache)
             lock = self.locks[entry["lock"]]
             if not lock.acquire(False): continue # is locked, go to next
@@ -115,19 +118,24 @@ class RandomFileCache(object):
         return False
 
     def terminate(self, sig=None, frame=None):
-        if not self.init or self.is_terminated.value: return
-        self.is_terminated.value = True
-        for lock in self.locks:
-            try: lock.release()
-            except ValueError: pass
-        if os.path.exists(self.cache_dir): shutil.rmtree(self.cache_dir)
-        self.job.join()
+        try:
+            if not self.init or self.is_terminated.value: return
+            self.is_terminated.value = True
+            for lock in self.locks:
+                try: lock.release()
+                except ValueError: pass
+            self.job.join()
+        finally:
+            if os.path.exists(self.cache_dir):
+                shutil.rmtree(self.cache_dir)
 
 
 class CachedFile(str):
     def set_lock(self, lock): self.lock = lock
     def __enter__(self): return self
-    def __exit__(self, type, value, traceback): self.lock.release()
+    def __exit__(self, type, value, traceback):
+        try: self.lock.release()
+        except ValueError: pass
 
 
 if __name__ == '__main__':
