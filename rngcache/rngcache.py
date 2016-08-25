@@ -13,6 +13,7 @@ import signal
 import ctypes
 import shutil
 import random
+import os
 from time import time, sleep
 import multiprocessing as mp
 from glob import glob
@@ -131,7 +132,6 @@ class CachedFile(str):
 
 if __name__ == '__main__':
     import yaml
-    import os
     from moviepy.editor import VideoFileClip
     os.chdir("..")
     with open("paths.yaml", "r") as f: PATH = yaml.load(f)
