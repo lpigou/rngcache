@@ -59,16 +59,20 @@ class RandomFileCache(object):
 
     def get_random_file(self):
         self.cache_ready.wait()
-        while True:
-            if len(self.cache) == 0:
-                sleep(0.1)
+        tries = 0
+        while tries < 100:
+            try: entry = random.choice(self.cache)
+            except:
+                if self.is_terminated.value: return None
+                tries += 1
+                sleep(0.01)
                 continue
-            entry = random.choice(self.cache)
             lock = self.locks[entry["lock"]]
             if not lock.acquire(False): continue # is locked, go to next
             cached_file = CachedFile(self.cache_dir + entry["key"])
             cached_file.set_lock(lock)
             return cached_file # extension of string
+        raise Exception("Failed to get random file")
 
     def cache_process(self):
         self.size = 0
@@ -124,7 +128,7 @@ class RandomFileCache(object):
             for lock in self.locks:
                 try: lock.release()
                 except ValueError: pass
-            self.job.join()
+            self.job.join(timeout=10)
         finally:
             if os.path.exists(self.cache_dir):
                 shutil.rmtree(self.cache_dir)
