@@ -48,7 +48,7 @@ class RandomFileCache(object):
         self.locks = [mp.Lock() for _ in range(self.max_files)]
         self.lock_idxs = range(self.max_files) # lock references
 
-        self.job = mp.Process(target=self.cache_process)
+        self.job = mp.Process(target=self._cache_process)
         self.job.daemon = True
         self.job.start()
 
@@ -73,6 +73,11 @@ class RandomFileCache(object):
             cached_file.set_lock(lock)
             return cached_file # extension of string
         raise Exception("Failed to get random file")
+
+    def _cache_process(self):
+        try: self.cache_process()
+        except Exception as e: print e
+        finally: self.terminate()
 
     def cache_process(self):
         self.size = 0
@@ -128,7 +133,9 @@ class RandomFileCache(object):
             for lock in self.locks:
                 try: lock.release()
                 except ValueError: pass
-            self.job.join(timeout=10)
+            self.job.join(timeout=5)
+            try:self.job.terminate()
+            except: pass
         finally:
             if os.path.exists(self.cache_dir):
                 shutil.rmtree(self.cache_dir)
